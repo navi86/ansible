@@ -1,0 +1,6 @@
+---
+- name: Install Python 2 first
+  when: ansible_os_family == 'Debian'
+  raw: test -e /usr/bin/python || (apt -y update && apt install -y python) 
+  register: output
+  changed_when: output.stdout != ""
