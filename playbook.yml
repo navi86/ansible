@@ -18,5 +18,3 @@
 
   roles:
      - ssh_update
-     - db
-     - webservers
