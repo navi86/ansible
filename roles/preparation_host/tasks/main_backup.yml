@@ -1,3 +1,0 @@
----
-- name: Install Python 2 first
-  raw: python --version || apt update && apt install -y python
