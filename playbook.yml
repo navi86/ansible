@@ -1,0 +1,22 @@
+---
+- hosts: all
+  gather_facts: no
+  pre_tasks:
+    - name: get OS Version
+      raw: cat /etc/*-release | sed -n -e 's/DISTRIB_ID=//p'
+      register: OS_version
+      changed_when: OS_version.stdout == "changed"
+
+    - name: Install Python on Ubuntu
+      when: OS_version.stdout.find('Ubuntu') !=-1
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python)
+      register: output
+      changed_when: output.stdout != ""
+
+    - name: gather facts
+      setup:
+
+  roles:
+     - ssh_update
+     - db
+     - webservers
