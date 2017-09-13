@@ -1,3 +1,4 @@
+#!/usr/local/bin/pythonw
 # Nutanix Rest Api v3
 # Python 2.7.9
 
@@ -241,15 +242,20 @@ def create_vm(restApi, vm_name, network_uuid, cluster_uuid, memory, num_sockets,
     (status, result) = restApi.rest_call()
     return status, result
 
-def clone_vm_from_image(restApi, vm_name, image_name,network_uuid, cluster_uuid, memory, num_sockets,vcpu,power_state):
-    image_uuid = get_image(RestApi, image_name)
 
+def clone_vm_from_image(restApi, vm_name, image_name,subnet_name, cluster_name, memory, num_sockets,vcpu,power_state):
+    # Get image UUID
+    image_uuid = get_image(RestApi, image_name)
+    # Get subnet UUID
+    subnet_uuid = get_network(RestApi, subnet_name)
+    # Get cluster UUID
+    cluster_uuid = get_cluster(RestApi, cluster_name)
+    # Get cloud-init config
     configfile = (open("template-cfg.yml")).readlines()
     configreplace = [line.replace('vmname', vm_name) for line in configfile]
     cloudsettings = "".join(configreplace)
     config = base64.b64encode(cloudsettings).decode('ascii')
-
-    # clusters[1]['entities'][0]['metadata']['uuid']
+    # Create a configuration for Rest Api body
     body = {
       "spec": {
         "cluster_reference": {
@@ -261,7 +267,7 @@ def clone_vm_from_image(restApi, vm_name, image_name,network_uuid, cluster_uuid,
             {
               "subnet_reference": {
                 "kind": "subnet",
-                "uuid": network_uuid
+                "uuid": subnet_uuid
               }
             }
           ],
@@ -299,10 +305,13 @@ def clone_vm_from_image(restApi, vm_name, image_name,network_uuid, cluster_uuid,
             "kind": "vm"
       }
     }
-
+    # Initialize setings of Rest Api
     restApi.rest_params_init(sub_url="vms", method="POST", body=body)
+    # Call Rest Api
     (status, result) = restApi.rest_call()
+    # Return result
     return status, result
+
 
 def get_image(restApi, image_name):
     custom_filter = "%s%s" % ("name==", image_name)
@@ -312,27 +321,26 @@ def get_image(restApi, image_name):
     }
     restApi.rest_params_init(sub_url="images/list", method="POST", body=body)
     (status, result) = restApi.rest_call()
-    return result['entities'][0]['metadata']['uuid']
+    image_uuid = [image['metadata']['uuid'] for image in result['entities'] if image['status']['name'] == image_name]
+    return status, image_uuid
 
-def get_network(restApi, network_name):
-    custom_filter = "%s%s" % ("name==", image_name)
-    body = {
-        "filter": custom_filter,
-        "kind": "image"
-    }
-    restApi.rest_params_init(sub_url="images/list", method="POST", body=body)
-    (status, result) = restApi.rest_call()
-    return result['entities'][0]['metadata']['uuid']
 
-# Get the list of clusters.
-def list_clusters(restApi):
-    body = { "kind": "cluster"}
-    restApi.rest_params_init(
-        sub_url="clusters/list",
-        method="POST",
-        body=body)
+def get_network(restApi, vm_subnet):
+    # Doesn't work with filtering
+    body = {"kind": "subnet"}
+    restApi.rest_params_init(sub_url="subnets/list", method="POST", body=body)
     (status, result) = restApi.rest_call()
-    return status, result
+    subnet_uuid =[subnet['metadata']['uuid'] for subnet in result['entities'] if subnet['status']['name'] == vm_subnet]
+    return status, subnet_uuid
+
+
+def get_cluster(restApi, cluster_name):
+    # Works only with UUID filter
+    body = {"kind": "cluster"}
+    restApi.rest_params_init(sub_url="clusters/list", method="POST", body=body)
+    (status, result) = restApi.rest_call()
+    cluster_uuid =[cluster['metadata']['uuid'] for cluster in result['entities'] if cluster['status']['name'] == cluster_name]
+    return status, cluster_uuid
 
 
 # Get a VM with particular UUID.
@@ -343,10 +351,22 @@ def get_vm_by_uuid(restApi, vm_uuid):
     return status, result
 
 
-RestApiconnection = RestApi("ntnx-548b1f14-a-cvm.local","admin",
+
+if __name__ == '__main__':
+
+    RestApiconnection = RestApi("ntnx-548b1f14-a-cvm.local","admin",
                                 "1qaz@WSX3edc")
 
-print(get_vm_by_uuid(restApi=RestApiconnection, vm_uuid="c37d981f-8dd3-448b-bfcd-9cd229ed12e4"))
+
+    vm_name="ansible-client10"
+    image_name="Centos7-cloudInit"
+    vm_network="vlan0"
+    vm_cluster="NTNX-lab"
+    vm_memory=1024
+    vm_num_sockets=1
+    vm_vcpu=1
+    vm_power_state="ON"
+
 #print(clone_vm_from_image(RestApi=RestApiconnection, vm_name="ansible-client10",image_name="Centos7-cloudInit",
 #                    network_uuid="88ba1a7c-5989-43a8-831f-e6355bb2b6d9",
 #                    cluster_uuid="0005558c-536f-7adc-2348-001fc69c242b", memory=1024,
