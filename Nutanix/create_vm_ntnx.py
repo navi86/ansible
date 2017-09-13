@@ -353,7 +353,3 @@ print(get_vm_by_uuid(restApi=RestApiconnection, vm_uuid="c37d981f-8dd3-448b-bfcd
 #                    num_sockets=1, vcpu=1, power_state="ON"))
 
 
-#clusters = list_clusters(RestApiconnection)
-#print(clusters)
-#print(get_vm(RestApiconnection,"c625aab3-3785-4aa7-b6b8-96d3841c2225"))
-#print(get_image(RestApiconnection,"Centos7-cloudInit"))
