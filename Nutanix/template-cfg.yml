@@ -1,0 +1,12 @@
+#cloud-config
+
+hostname: vmname
+fqdn: vmname.local
+chpasswd:
+  list: |
+    root:1qaz@WSX
+  expire: False
+
+runcmd:
+  - sed -i -e 's/ONBOOT=no/ONBOOT=yes/g' /etc/sysconfig/network-scripts/ifcfg-eth0
+  - service network restart
