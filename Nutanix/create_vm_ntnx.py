@@ -184,40 +184,6 @@ class ApiLibrary:
             return None
 
 
-def create_vm(restApi, vm_name, network_uuid, cluster_uuid, memory, num_sockets,vcpu,power_state):
-    body = {
-        "spec": {
-            "cluster_reference": {
-                "kind": "cluster",
-                "uuid": cluster_uuid,
-            },
-            "resources": {
-                "num_vcpus_per_socket": int(vcpu),
-                "nic_list": [
-                    {
-                        "subnet_reference": {
-                            "kind": "subnet",
-                            "uuid": network_uuid
-                        }
-                    }
-                ],
-                "memory_size_mib": int(memory),
-                "power_state": power_state,
-                "num_sockets": int(num_sockets)
-            },
-            "name": vm_name
-        },
-        "api_version": "3.0",
-        "metadata": {
-            "kind": "vm",
-            }
-    }
-
-    restApi.rest_params_init(sub_url="vms", method="POST", body=body)
-    (status, result) = restApi.rest_call()
-    return status, result
-
-
 def clone_vm_from_image(restApi, vm_name, image_uuid, subnet_uuid, cluster_uuid, memory, num_sockets, vm_vcpu,
                         power_state):
     # Get cloud-init config
