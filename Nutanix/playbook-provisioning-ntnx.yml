@@ -21,7 +21,7 @@
   - name: output result
     debug:
       var: result
-  - name: create file
+  - name: create an inventory file
     become: yes
     template:
         src: /etc/ansible/ansible-template.j2
