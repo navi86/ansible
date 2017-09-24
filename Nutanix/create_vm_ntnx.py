@@ -1,21 +1,96 @@
-#!/usr/local/bin/pythonw
+#!/usr/bin/python
 # Nutanix Rest Api v3
 # Python 2.7.9
 
-import urllib2
+from ansible.module_utils.basic import *
 import base64
+import logging
+import urllib2
 import json
 import socket
 import sys
 import pprint
 import time
 import ssl
-import argparse
+import os
+
 
 # socket timeout in seconds
 TIMEOUT = 30
 socket.setdefaulttimeout(TIMEOUT)
 pp = pprint.PrettyPrinter(indent=4)
+
+DOCUMENTATION = '''
+---
+module: creat_vm_ntnx
+
+short_description: This is  module for creation VM on Nutanix cluster
+
+version_added: "1.0"
+
+description:
+    - "This is  module for creation VM on Nutanix cluster"
+
+options:
+    name:
+        description:
+            - This is the name of VM
+        required: true
+    image:
+        description:
+            - Name of the source image to deploy from
+        required: true
+    network:
+        description:
+            - Subnet name for new VM
+        required: true
+    cluster:
+        description:
+            - The name of the cluster to create the VM in.
+        required: true
+    memory:
+        description:
+            - Amount memory of VM.
+        required: true
+    cores_per_socket:
+        description:
+            - Amount cores per socket of VM.
+        required: true
+    numvcpu:
+        description:
+            - Amount cores of VM.
+        required: true
+    state:
+        description:
+            - Indicate desired state of the vm.
+        required: true
+    user:
+        description:
+            - Username to connect to Nutanix as.
+        required: true
+    password:
+        description:
+            - Password of the user to connect to Nutanix as.
+        required: true
+    cvm_address:
+        description:
+            - The hostname or IP address of the Nutanix CVM the module will connect to, to create VM.
+        required: true
+
+author:
+    - Ivan Krylov (krylov.ivan86@gmail.com)
+'''
+
+EXAMPLES = '''
+'''
+
+RETURN = '''
+original_message:
+    description: The original name param that was passed in
+    type: str
+message:
+    description: The output message that the sample module generates
+'''
 
 class RestApi():
 
@@ -69,11 +144,11 @@ class RestApi():
                 try:
                     err_result = json.loads(err_result)
                 except:
-                    print "Error: %s" % e
+                    #print "Error: %s" % e
                     return "408", None
             return "408", err_result
         except Exception as e:
-            print "Error: %s" % e
+            #print "Error: %s" % e
             return "408", None
 
 class ApiLibrary:
@@ -140,7 +215,7 @@ class ApiLibrary:
             return True
         if result and str(status) == "200" or "202":
             api_status = self.parse_result(result, "status", "state")
-            print api_status
+            #print api_status
             if api_status == "COMPLETE":
                 return True
             elif api_status == "Error" or "ERROR":
@@ -158,7 +233,7 @@ class ApiLibrary:
             uuid = self.parse_result(result, "metadata", "uuid")
 
         if self.__is_result_complete(status, result):
-            return uuid
+            return result, uuid
         else:
             api_status = self.parse_result(result, "status", "state")
             if uuid and api_status != "COMPLETE" and api_status != "Error":
@@ -172,22 +247,27 @@ class ApiLibrary:
                     if get_status is True:
                         end_time = time.clock()
                         total_time_taken = end_time - start_time
-                        print "Total Time taken to complete:", total_time_taken
-                        return uuid
+                        #print "Total Time taken to complete:", total_time_taken
+                        return result, uuid
                     # API status is Error
                     if get_status is None:
                         break
 
-            self.print_failure_status(result)
-            api_status = self.parse_result(result, "status", "state")
-            print "API status :", api_status
-            return None
+            return result, uuid
+            #self.print_failure_status(result)
+            #api_status = self.parse_result(result, "status", "state")
+            #print "API status :", api_status
+            #return None
 
 
-def clone_vm_from_image(restApi, vm_name, image_uuid, subnet_uuid, cluster_uuid, memory, num_sockets, vm_vcpu,
+def clone_vm_from_image(restApi, vm_name, image_uuid, subnet_uuid, cluster_uuid, memory, num_sockets, cores_per_socket,
                         power_state):
     # Get cloud-init config
-    configfile = (open("template-cfg.yml")).readlines()
+    path_configfile = os.path.join(os.path.dirname(__file__), 'template-cfg.yml')
+    # Absolute path
+    configfile = (open('/etc/ansible/library/template-cfg.yml')).readlines()
+    #configfile = (open('template-cfg.yml')).readlines()
+
     configreplace = [line.replace('vmname', vm_name) for line in configfile]
     cloudsettings = "".join(configreplace)
     config = base64.b64encode(cloudsettings).decode('ascii')
@@ -208,7 +288,7 @@ def clone_vm_from_image(restApi, vm_name, image_uuid, subnet_uuid, cluster_uuid,
             }
           ],
           "power_state": power_state,
-          "num_vcpus_per_socket": int(vm_vcpu),
+          "num_vcpus_per_socket": int(cores_per_socket),
           "num_sockets": int(num_sockets),
           "memory_size_mib": int(memory),
           "guest_customization": {
@@ -309,81 +389,102 @@ def api_response_(status, result_list, origin_name):
                 #print('%s uuid: %s' % (item_kind, item_uuid))
                 return item_uuid
     else:
-        print "Failed to get clusters list."
-        api_library.print_failure_status(result_list)
-        return
+        ### Need add exception to stop processing
+        #print "Failed to get clusters list."
+        #api_library.print_failure_status(result_list)
+        return None
 
 
-def main(task, vm_name, image_name, vm_cluster, vm_network, vm_memory, vm_num_sockets, vm_vcpu, vm_power_state, user, password,
-         cvm_address):
+def extract_value(dict_in, search_key):
+    result = []
+    for key, value in dict_in.iteritems():
+        if isinstance(value, dict):   # If key itself is a dictionary
+            return extract_value(value, search_key)
+        elif isinstance(value, list):   # If key itself is a list
+            for item in value:
+                return extract_value(item, search_key)
+        elif isinstance(value, unicode) and key == search_key:
+            # Write to dict_out
+            result.append(value.encode())
+    return result
 
-    #rest_api = RestApi("ntnx-548b1f14-a-cvm.local", "admin", "1qaz@WSX3edc")
-    rest_api = RestApi(cvm_address, user, password)
+
+def main():
+    retry_count = 100
+    # define the available arguments/parameters that a user can pass to the module
+    module_args = dict(
+        name=dict(type='str', required=True),
+        image=dict(type='str', required=True),
+        network=dict(type='str', required=True),
+        cluster=dict(type='str', required=True),
+        memory=dict(type='int', required=True),
+        cores_per_socket=dict(type='int', required=True),
+        numvcpu=dict(type='int', required=True),
+        state=dict(type='str', required=True),
+        user=dict(type='str', required=True),
+        password=dict(type='str', required=True),
+        cvm_address=dict(type='str', required=True)
+    )
+    # seed the result dict in the object
+    # we primarily care about changed and state
+    # change is if this module effectively modified the target
+    # state will include any data that you want your module to pass back
+    # for consumption, for example, in a subsequent task
+    result_output = dict(
+        changed=False,
+        UUID='',
+        IP_address='',
+        hostname='',
+        message=''
+    )
+    module = AnsibleModule(argument_spec=module_args, supports_check_mode=False)
+    rest_api = RestApi(module.params['cvm_address'], module.params['user'], module.params['password'])
 
     # Get cluster UUID
-    (status, result) = get_cluster(rest_api, vm_cluster)
-    cluster_uuid = api_response_(status, result, vm_cluster)
+    (status, result) = get_cluster(rest_api, module.params['cluster'])
+    cluster_uuid = api_response_(status, result, module.params['cluster'])
 
     # Get image UUID
-    (status, result) = get_image(rest_api, image_name)
-    image_uuid = api_response_(status, result, image_name)
+    (status, result) = get_image(rest_api, module.params['image'])
+    image_uuid = api_response_(status, result, module.params['image'])
 
     # Get subnet UUID
-    (status, result) = get_network(rest_api, vm_network)
-    subnet_uuid = api_response_(status, result, vm_network)
+    (status, result) = get_network(rest_api, module.params['network'])
+    subnet_uuid = api_response_(status, result, module.params['network'])
 
-    (status, result) = clone_vm_from_image(restApi=rest_api, vm_name=vm_name, image_uuid=image_uuid, subnet_uuid=subnet_uuid,
-                        cluster_uuid=cluster_uuid, memory=vm_memory, num_sockets=vm_num_sockets, vm_vcpu=vm_vcpu,
-                        power_state=vm_power_state)
+    (status, result) = clone_vm_from_image(restApi=rest_api, vm_name=module.params['name'], image_uuid=image_uuid,
+                                           subnet_uuid=subnet_uuid, cluster_uuid=cluster_uuid,
+                                           memory=module.params['memory'], num_sockets=module.params['numvcpu'],
+                                           cores_per_socket=module.params['cores_per_socket'],
+                                           power_state=module.params['state'])
     api_library = ApiLibrary()
     api_response = api_library.cluster_responses
     if api_response[str(status)] == "success":
-        item_uuid = api_library.parse_result(result, "metadata", "uuid")
-        print(item_uuid)
-        return item_uuid
+        (result, item_uuid) = api_library.track_completion_status(rest_api, status, result, get_vm_by_uuid)
+        exe_status = result['status']['state'].encode()
+        if exe_status.lower() != 'error':
+            count = 0
+            while count < retry_count:
+                count += 1
+                (status, result) = get_vm_by_uuid(restApi=rest_api, vm_uuid=item_uuid)
+                vm_ip = extract_value(result, 'ip')
+                if vm_ip:
+                    result_output['IP_address'] = "".join(vm_ip)
+                    result_output['hostname'] = module.params['name']
+                    result_output['changed'] = True
+                    result_output['UUID'] = item_uuid
+                    result_output['message'] = "Operation succeed"
+                    module.exit_json(**result_output)
+                    break
+                time.sleep(3)
+        else:
+            output = extract_value(result, 'message')
+            result_output['message'] = output
+            module.fail_json(msg='You requested this to fail', **result_output)
     else:
-        print "Failed to get clusters list."
-        api_library.print_failure_status(result)
-        return
+        result_output['message'] = api_response[str(status)]
+        module.fail_json(msg='You requested this to fail', **result_output)
+
 
 if __name__ == '__main__':
-    # Fetch required parameters
-    """parser = argparse.ArgumentParser(description='Create a VM on Nutanix.')
-    parser.add_argument('-name', type=str, dest='vm_name', required=True, help='Virtual machine name')
-    parser.add_argument('-image', type=str, dest='image', required=True, help='Image name')
-    parser.add_argument('-network', type=str, dest='network', required=True, help='Network name')
-    parser.add_argument('-cluster', type=str, dest='cluster', required=True, help='Nutanix cluster name')
-    parser.add_argument('-memory', type=int, dest='memory', required=True, help='Memory size in MB')
-    parser.add_argument('-vcpu', type=int, dest='vcpu', required=True, help='Amount of vCPU')
-    parser.add_argument('-numvcpu', type=int, dest='numvcpu', required=True, help='Amount of sockets')
-    parser.add_argument('-state', type=str, dest='state', required=True, help='VM power state')
-    parser.add_argument('-user', type=str, dest='userNTNX', required=True,
-                        help='User with permission create VM on Nutanix cluster')
-    parser.add_argument('-password', type=str, dest='passNTNX', required=True, help='Password of user')
-    parser.add_argument('-cvm_address', type=str, dest='cvm_address', required=True, help='IP or FQDN of Nutanix cluster')
-    args = parser.parse_args()"""
-    #./create_vm_ntnx.py -name 'ansible-client10' -image 'Centos7-cloudInit' -cluster 'NTNX-lab' -network 'vlan0' -memory 1024 -numvcpu 1 -vcpu 1 -state 'ON' -user 'admin' -password '1qaz@WSX3edc' -cvm_address 'ntnx-548b1f14-a-cvm.local'
-
-    # Temporal variable
-    vm_name = "ansible-client10"
-    image_name = "Centos7-cloudInit"
-    vm_network = "vlan0"
-    vm_cluster = "NTNX-lab"
-    vm_memory = 1024
-    vm_num_sockets = 1
-    vm_vcpu = 1
-    vm_power_state = "ON"
-    user = 'admin'
-    password = "1qaz@WSX3edc"
-    cvm_address = 'ntnx-548b1f14-a-cvm.local'
-    main('clone', vm_name=vm_name, image_name=image_name, vm_cluster=vm_cluster, vm_network=vm_network,
-         vm_memory=vm_memory, vm_num_sockets=vm_num_sockets, vm_vcpu=vm_vcpu, vm_power_state=vm_power_state,
-         cvm_address=cvm_address, user=user, password=password)
-    ###
-
-
-    #main('clone', vm_name=args.vm_name, image_name=args.image, vm_cluster=args.cluster, vm_network=args.network,
-    #     vm_memory=args.memory, vm_num_sockets=args.numvcpu, vm_vcpu=args.vcpu, vm_power_state=args.state,
-    #     cvm_address=args.cvm_address, user=args.userNTNX, password=args.passNTNX)
-
-
+    main()
