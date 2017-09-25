@@ -281,7 +281,6 @@ def clone_vm_from_image(restApi, vm_name, image_uuid, subnet_uuid, cluster_uuid,
                         power_state, cloud_config):
     # Get cloud-init config
     configfile = (open(cloud_config)).readlines()
-
     configreplace = [line.replace('vmname', vm_name) for line in configfile]
     cloudsettings = "".join(configreplace)
     config = base64.b64encode(cloudsettings).decode('ascii')
