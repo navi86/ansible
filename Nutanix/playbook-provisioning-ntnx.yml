@@ -16,6 +16,7 @@
       user: 'admin'
       password: '1qaz@WSX3edc'
       cvm_address: 'ntnx-548b1f14-a-cvm.local'
+      cloud_config: './module_utils/template-cfg.yml'
     register: result
     #no_log: True
   - name: output result
@@ -24,5 +25,5 @@
   - name: create an inventory file
     become: yes
     template:
-        src: /etc/ansible/ansible-template.j2
+        src: /etc/ansible/ntnx-template.j2
         dest: /etc/ansible/pilot-inventory

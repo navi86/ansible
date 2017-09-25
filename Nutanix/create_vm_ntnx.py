@@ -261,12 +261,12 @@ class ApiLibrary:
 
 
 def clone_vm_from_image(restApi, vm_name, image_uuid, subnet_uuid, cluster_uuid, memory, num_sockets, cores_per_socket,
-                        power_state):
+                        power_state, cloud_config):
     # Get cloud-init config
-    path_configfile = os.path.join(os.path.dirname(__file__), 'template-cfg.yml')
+    #path_configfile = os.path.join(os.path.dirname(__file__), 'template-cfg.yml')
     # Absolute path
-    configfile = (open('/etc/ansible/library/template-cfg.yml')).readlines()
-    #configfile = (open('template-cfg.yml')).readlines()
+    #configfile = (open('/etc/ansible/library/template-cfg.yml')).readlines()
+    configfile = (open(cloud_config)).readlines()
 
     configreplace = [line.replace('vmname', vm_name) for line in configfile]
     cloudsettings = "".join(configreplace)
@@ -423,7 +423,8 @@ def main():
         state=dict(type='str', required=True),
         user=dict(type='str', required=True),
         password=dict(type='str', required=True),
-        cvm_address=dict(type='str', required=True)
+        cvm_address=dict(type='str', required=True),
+        cloud_config=dict(type='str', required=True)
     )
     # seed the result dict in the object
     # we primarily care about changed and state
@@ -456,7 +457,8 @@ def main():
                                            subnet_uuid=subnet_uuid, cluster_uuid=cluster_uuid,
                                            memory=module.params['memory'], num_sockets=module.params['numvcpu'],
                                            cores_per_socket=module.params['cores_per_socket'],
-                                           power_state=module.params['state'])
+                                           power_state=module.params['state'],
+                                           cloud_config=module.params['cloud_config'])
     api_library = ApiLibrary()
     api_response = api_library.cluster_responses
     if api_response[str(status)] == "success":
