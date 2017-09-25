@@ -76,6 +76,10 @@ options:
         description:
             - The hostname or IP address of the Nutanix CVM the module will connect to, to create VM.
         required: true
+    cloud_config:
+        description:
+            - Cloud config file for customization VM.
+        required: true
 
 author:
     - Ivan Krylov (krylov.ivan86@gmail.com)
