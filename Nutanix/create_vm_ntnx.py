@@ -280,9 +280,6 @@ class ApiLibrary:
 def clone_vm_from_image(restApi, vm_name, image_uuid, subnet_uuid, cluster_uuid, memory, num_sockets, cores_per_socket,
                         power_state, cloud_config):
     # Get cloud-init config
-    #path_configfile = os.path.join(os.path.dirname(__file__), 'template-cfg.yml')
-    # Absolute path
-    #configfile = (open('/etc/ansible/library/template-cfg.yml')).readlines()
     configfile = (open(cloud_config)).readlines()
 
     configreplace = [line.replace('vmname', vm_name) for line in configfile]
