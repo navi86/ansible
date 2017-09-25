@@ -82,6 +82,19 @@ author:
 '''
 
 EXAMPLES = '''
+    create_vm_ntnx:
+      name: 'test-vm'
+      image: 'Centos7-image'
+      network: 'vlan0'
+      cluster: 'lab-test'
+      memory: 512
+      cores_per_socket: 1
+      numvcpu: 1
+      state: 'ON'
+      user: 'admin'
+      password: 'password'
+      cvm_address: 'ntnx-abcd-a-cvm.local'
+      cloud_config: 'cloud-config.yml'
 '''
 
 RETURN = '''
