@@ -1,0 +1,14 @@
+-  server:
+    name: "app1"
+    memory: 512
+    cores_per_socket: 1
+    numvcpu: 1
+    hdd: 45
+    state: "ON"
+-  server:
+    name: "db1"
+    memory: 1024
+    cores_per_socket: 1
+    numvcpu: 2
+    hdd: 50
+    state: "ON"
