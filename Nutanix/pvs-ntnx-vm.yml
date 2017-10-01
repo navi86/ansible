@@ -19,7 +19,7 @@
       user: 'admin'
       password: '1qaz@WSX3edc'
       cvm_address: 'ntnx-548b1f14-a-cvm.local'
-      cloud_config: './module_utils/template-cfg.yml'
+      cloud_config: 'template-cfg.yml'
     register: result
     with_items: "{{ servers_settings }}"
     #no_log: True
