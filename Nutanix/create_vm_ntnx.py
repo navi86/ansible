@@ -14,7 +14,6 @@ import time
 import ssl
 import os
 
-
 # socket timeout in seconds
 TIMEOUT = 30
 socket.setdefaulttimeout(TIMEOUT)
@@ -430,6 +429,9 @@ def main():
         image=dict(type='str', required=True),
         network=dict(type='str', required=True),
         cluster=dict(type='str', required=True),
+        #memory=dict(type='str', required=True),
+        #cores_per_socket=dict(type='str', required=True),
+        #numvcpu=dict(type='str', required=True),
         memory=dict(type='int', required=True),
         cores_per_socket=dict(type='int', required=True),
         numvcpu=dict(type='int', required=True),
@@ -451,7 +453,9 @@ def main():
         hostname='',
         message=''
     )
+    #pdb.set_trace()
     module = AnsibleModule(argument_spec=module_args, supports_check_mode=False)
+    #pdb.set_trace()
     rest_api = RestApi(module.params['cvm_address'], module.params['user'], module.params['password'])
 
     # Get cluster UUID

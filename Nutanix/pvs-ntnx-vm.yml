@@ -1,0 +1,36 @@
+- name: Deploy VM on Nutanix cluster
+  connection: local
+  hosts: localhost
+  gather_facts: False
+  vars:
+    servers_settings: "{{ lookup('file', '/etc/ansible/list_servers.yml') | from_yaml }}"
+  tasks:
+  - name: Create VM on Nutanix cluster
+    create_vm_ntnx:
+      #name: "{{ inventory_hostname}}"
+      name: "{{ item.server.name }}"
+      image: 'Centos7-cloudInit'
+      network: 'vlan0'
+      cluster: 'NTNX-lab'
+      memory: "{{ item.server.memory }}"
+      cores_per_socket: "{{ item.server.cores_per_socket }}"
+      numvcpu: "{{ item.server.numvcpu }}"
+      state: "{{ item.server.state }}"
+      user: 'admin'
+      password: '1qaz@WSX3edc'
+      cvm_address: 'ntnx-548b1f14-a-cvm.local'
+      cloud_config: './module_utils/template-cfg.yml'
+    register: result
+    with_items: "{{ servers_settings }}"
+    #no_log: True
+  - name: output result
+    debug:
+      var: result
+  - name: create an inventory file
+    become: yes
+    template:
+        src: /etc/ansible/ntnx-template.j2
+        dest: /etc/ansible/pilot-inventory
+        owner: user
+        group: wheel
+        mode: 0644
