@@ -1,6 +1,4 @@
-{% for item in groups %}
-[{{item}}]
-{%   for entry in groups[item] %}
-{{ entry }} ansible_ssh_host={{ hostvars[entry]['result']['IP_address'] }}
-{%   endfor %}
+[all]
+{% for entry in result['results'] %}
+{{ entry['hostname'] }} ansible_ssh_host={{ entry['IP_address'] }}
 {% endfor %}
