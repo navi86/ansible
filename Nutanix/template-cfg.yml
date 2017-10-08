@@ -6,11 +6,9 @@ chpasswd:
   list: |
     root:1qaz@WSX
   expire: False
+ssh_pwauth: true
+timezone: /usr/share/zoneinfo/Europe/Moscow
 
 runcmd:
   - sed -i -e 's/ONBOOT=no/ONBOOT=yes/g' /etc/sysconfig/network-scripts/ifcfg-eth0
   - service network restart
-  - sed -i -e 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-  - service sshd restart
-  - unlink /etc/localtime
-  - ln -s /usr/share/zoneinfo/Europe/Moscow /etc/localtime
