@@ -207,6 +207,7 @@ class Inventory(object):
                   .format(nutanix_yml_path))
             sys.exit(1)
         # Configure nested groups instead of flat namespace.
+        #if config.has_option('ec2', 'nested_groups'):
         settings = config.get('settings')
         try:
             settings = config.get('settings')

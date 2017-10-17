@@ -19,7 +19,7 @@ settings:
     nested_groups: True
 # Grouping options
 grouping:
-    group_by_vm_id: true
-    group_by_vm_type: true
-    group_by_vm_state: true
+    group_by_instance_id: true
+    group_by_instance_type: true
+    group_by_instance_state: true
     group_by_platform: true
